@@ -1,11 +1,13 @@
 let currentUser = null;
 let tasks = [];
 
+const API_BASE_URL = "http://localhost:3000/api/v1";
+
 // tasks
 
 async function fetchTasks() 
 {
-  const res = await fetch("/tasks");
+  const res = await fetch(`${API_BASE_URL}/tasks`);
   tasks = await res.json();
   displayTasks();
 }
@@ -45,25 +47,34 @@ async function addTask()
 
   if (!title.trim()) return alert("Task title required!");
 
-  const res = await fetch("/tasks", {
+  const res = await fetch(`${API_BASE_URL}/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title, description: desc, user_id: currentUserId })
   });
 
-  document.getElementById("taskTitle").value = "";
-  document.getElementById("taskDesc").value = "";
-  fetchTasks();
+  if (res.ok) {
+    document.getElementById("taskTitle").value = "";
+    document.getElementById("taskDesc").value = "";
+    fetchTasks();
+  } else {
+    alert("Failed to add task");
+  }
 }
 
 async function deleteTask(id) 
 {
-  const res = await fetch(`/tasks/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/tasks/${id}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: currentUserId })
   });
-  fetchTasks();
+  
+  if (res.ok) {
+    fetchTasks();
+  } else {
+    alert("Failed to delete task");
+  }
 }
 
 document.getElementById("filterInput").addEventListener("input", applyFilterAndSort);
@@ -104,7 +115,7 @@ async function signupUser()
   const username = document.getElementById("signupUsername").value;
   const password = document.getElementById("signupPassword").value;
 
-  const res = await fetch("/signup", {
+  const res = await fetch(`${API_BASE_URL}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
@@ -129,7 +140,8 @@ async function signupUser()
   } 
   else 
   {
-    alert("Signup failed");
+    const error = await res.json();
+    alert(error.error || "Signup failed");
   }
 }
 
@@ -139,7 +151,7 @@ async function loginUser()
   const username = document.getElementById("loginUsername").value;
   const password = document.getElementById("loginPassword").value;
 
-  const res = await fetch("/login", {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
@@ -165,7 +177,8 @@ async function loginUser()
     } 
     else 
       {
-    alert("Login failed");
+    const error = await res.json();
+    alert(error.error || "Login failed");
     }
 }
 
