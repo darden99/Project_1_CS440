@@ -30,4 +30,4 @@ INSERT INTO tasks (title, description, user_id) VALUES
 ('Binary Search Tree', 'Implement insert, delete, search operations', 1),
 ('Sorting Algorithms', 'Write and compare bubble, merge, quicksort', 2),
 ('Hash Table Implementation', 'Implement hash table with collisions', 2),
-('Database Schema Design', 'Design normalized schema', 3),
+('Database Schema Design', 'Design normalized schema', 3)
