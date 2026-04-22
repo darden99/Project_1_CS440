@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: task-tracker-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: REDACTED_PASSWORD
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    networks:
+      - task-tracker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: auth_db
+      DB_PASSWORD: REDACTED_PASSWORD
+      DB_PORT: 5432
+      PORT: 3001
+      JWT_SECRET: your-secret-key-change-in-production
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - task-tracker-network
+
+  # Task Service
+  task-service:
+    build: ./task-service
+    container_name: task-service
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: task_db
+      DB_PASSWORD: REDACTED_PASSWORD
+      DB_PORT: 5432
+      PORT: 3002
+      USER_SERVICE_URL: http://user-service:3003
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - task-tracker-network
+
+  # User Service
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: user_db
+      DB_PASSWORD: REDACTED_PASSWORD
+      DB_PORT: 5432
+      PORT: 3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - task-tracker-network
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      TASK_SERVICE_URL: http://task-service:3002
+      USER_SERVICE_URL: http://user-service:3003
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - task-service
+      - user-service
+    networks:
+      - task-tracker-network
+
+networks:
+  task-tracker-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
